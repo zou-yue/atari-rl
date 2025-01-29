@@ -53,7 +53,7 @@ class Losses(object):
           name='clipped_loss')
 
   def one_step_loss(self):
-    with tf.name_scope('one_step_loss'):
+    with tf.compat.v1.name_scope('one_step_loss'):
       taken_action_value = self.policy_network[0].taken_action_value
 
       if self.config.persistent_advantage_learning:
@@ -70,32 +70,32 @@ class Losses(object):
       return error, loss
 
   def one_step_target(self):
-    with tf.name_scope('one_step_target'):
+    with tf.compat.v1.name_scope('one_step_target'):
       return self.reward[0] + self.discount * self.value(1)
 
   def value(self, t):
     if self.config.double_q:
-      with tf.name_scope('double_q_value'):
+      with tf.compat.v1.name_scope('double_q_value'):
         greedy_action = tf.stop_gradient(self.policy_network[t].greedy_action)
         return self.target_network[t].action_value(greedy_action)
     elif self.config.sarsa:
-      with tf.name_scope('sarsa_value'):
+      with tf.compat.v1.name_scope('sarsa_value'):
         return self.target_network[t].taken_action_value
     else:
-      with tf.name_scope('q_value'):
+      with tf.compat.v1.name_scope('q_value'):
         return self.target_network[t].value
 
   def persistent_advantage_target(self):
-    with tf.name_scope('persistent_advantage_target'):
+    with tf.compat.v1.name_scope('persistent_advantage_target'):
       one_step_target = self.one_step_target()
       alpha = self.config.pal_alpha
       action = self.action[0]
 
-      with tf.name_scope('advantage_target'):
+      with tf.compat.v1.name_scope('advantage_target'):
         advantage = self.value(0) - self.target_network[0].action_value(action)
         advantage_target = one_step_target - alpha * advantage
 
-      with tf.name_scope('next_advantage_target'):
+      with tf.compat.v1.name_scope('next_advantage_target'):
         next_advantage = (
             self.value(1) - self.target_network[1].action_value(action))
         next_advantage_target = one_step_target - alpha * next_advantage
@@ -103,14 +103,14 @@ class Losses(object):
       return tf.maximum(advantage_target, next_advantage_target, name='target')
 
   def optimality_tightening(self):
-    with tf.name_scope('optimality_tightening'):
+    with tf.compat.v1.name_scope('optimality_tightening'):
       taken_action_value = self.policy_network[0].taken_action_value
 
       # Upper bounds
       upper_bounds = []
       rewards = 0
       for t in range(-1, -self.config.optimality_tightening_steps - 1, -1):
-        with tf.name_scope(util.format_offset('upper_bound', t)):
+        with tf.compat.v1.name_scope(util.format_offset('upper_bound', t)):
           rewards = self.reward[t] + self.discount * rewards
           q_value = (self.discounts[t] *
                      self.target_network[t].taken_action_value)
@@ -119,7 +119,7 @@ class Losses(object):
 
       upper_bound = tf.reduce_min(tf.stack(upper_bounds, axis=2), axis=2)
       upper_bound_difference = taken_action_value - upper_bound
-      upper_bound_breached = tf.to_float(upper_bound_difference > 0)
+      upper_bound_breached = tf.cast(upper_bound_difference > 0, dtype=tf.float32)
       upper_bound_penalty = tf.square(tf.nn.relu(upper_bound_difference))
 
       # Lower bounds
@@ -129,14 +129,14 @@ class Losses(object):
       lower_bounds = [discounted_reward]
       rewards = self.reward[0]
       for t in range(1, self.config.optimality_tightening_steps + 1):
-        with tf.name_scope(util.format_offset('lower_bound', t)):
+        with tf.compat.v1.name_scope(util.format_offset('lower_bound', t)):
           rewards += self.reward[t] * self.discounts[t]
           lower_bound = rewards + self.discounts[t + 1] * self.value(t + 1)
         lower_bounds.append(lower_bound)
 
       lower_bound = tf.reduce_max(tf.stack(lower_bounds, axis=2), axis=2)
       lower_bound_difference = lower_bound - taken_action_value
-      lower_bound_breached = tf.to_float(lower_bound_difference > 0)
+      lower_bound_breached = tf.cast(lower_bound_difference > 0, dtype=tf.float32)
       lower_bound_penalty = tf.square(tf.nn.relu(lower_bound_difference))
 
       # Penalty and rescaling
@@ -201,8 +201,8 @@ class Losses(object):
 
     self.discount = config.discount_rate
     self.discounts = ArraySyntax(lambda t: self.discount**t)
-    self.global_step = tf.to_float(inputs.global_step)
-    self.replay_count = tf.to_float(inputs.replay_count)
+    self.global_step = tf.cast(inputs.global_step, dtype=tf.float32)
+    self.replay_count = tf.cast(inputs.replay_count, dtype=tf.float32)
     self.bootstrap_mask = inputs.bootstrap_mask
     self.priority_probabilities = inputs.priority_probabilities
 

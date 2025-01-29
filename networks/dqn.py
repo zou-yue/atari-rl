@@ -85,7 +85,7 @@ class Network(object):
         greedy_action, axis=2, name='greedy_action')
 
   def action_value(self, action, name='action_value'):
-    with tf.name_scope(name):
+    with tf.compat.v1.name_scope(name):
       return self.choose_from_actions(self.action_values, action)
 
   def build_actor_critic_heads(self, inputs, conv_output, reward_scaling):
@@ -109,7 +109,7 @@ class Network(object):
         -self.policy * self._log_policy, axis=2, name='entropy')
 
   def log_policy(self, action, name='log_policy'):
-    with tf.name_scope(name):
+    with tf.compat.v1.name_scope(name):
       return self.choose_from_actions(self._log_policy, action)
 
   def choose_from_actions(self, actions, action):
@@ -121,7 +121,7 @@ class Network(object):
         tf.one_hot(self.greedy_action, self.config.num_actions), axis=1)
 
     # Add some noise to break ties
-    noise = tf.random_uniform([self.config.num_actions])
+    noise = tf.random.uniform([self.config.num_actions])
 
     _, ensemble_greedy_action = tf.nn.top_k(ensemble_votes + noise, k=1)
     self.ensemble_greedy_action = tf.squeeze(
@@ -139,7 +139,7 @@ class Network(object):
 
   @property
   def variables(self):
-    return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope.name)
+    return tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, self.scope.name)
 
   def activation_summary(self, tensor):
     if self.write_summaries:
@@ -150,7 +150,7 @@ class Network(object):
 
 class ActionValueHead(object):
   def __init__(self, name, inputs, conv_outputs, reward_scaling, config):
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
       action_values = self.action_value_layer(conv_outputs, config)
       action_values = reward_scaling.unnormalize_output(action_values)
       value, greedy_action = tf.nn.top_k(action_values, k=1)
@@ -172,7 +172,7 @@ class ActionValueHead(object):
       actions = tf.layers.dense(
           hidden_actions, config.num_actions, name='actions')
 
-      return value + actions - tf.reduce_mean(actions, axis=1, keep_dims=True)
+      return value + actions - tf.reduce_mean(actions, axis=1, keepdims=True)
 
     else:
       hidden = tf.layers.dense(conv_outputs, 256, tf.nn.relu, name='hidden')
@@ -181,7 +181,7 @@ class ActionValueHead(object):
 
 class ActorCriticHead(object):
   def __init__(self, name, inputs, conv_outputs, reward_scaling, config):
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
       hidden = tf.layers.dense(conv_outputs, 256, tf.nn.relu, name='hidden')
 
       value = tf.layers.dense(hidden, 1)
@@ -196,6 +196,6 @@ class ActorCriticHead(object):
 
       # Sample action from policy
       self.greedy_action = tf.squeeze(
-          tf.multinomial(self.log_policy, num_samples=1),
+          tf.random.categorical(self.log_policy, num_samples=1),
           axis=1,
           name='greedy_action')

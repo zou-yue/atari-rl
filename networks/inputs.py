@@ -7,7 +7,7 @@ class Inputs(object):
   def __init__(self, config):
     self.offset_inputs = {}
 
-    with tf.name_scope('inputs') as self.scope:
+    with tf.compat.v1.name_scope('inputs') as self.scope:
       self.global_step = tf.contrib.framework.get_or_create_global_step()
 
       self.replay_count = auto_placeholder(tf.int32, (), 'replay_count',
@@ -19,7 +19,7 @@ class Inputs(object):
           name='frames',
           feed_data=lambda memory, indices: memory.frames[indices],
           # Centre around 0, scale between [-1, 1]
-          preprocess_offset=lambda frames: (tf.to_float(frames) / 127.5) - 1)
+          preprocess_offset=lambda frames: (tf.cast(frames, dtype=tf.float32) / 127.5) - 1)
 
       self.actions = auto_placeholder(
           tf.int32, [1], 'actions',
@@ -47,8 +47,8 @@ class Inputs(object):
 
   def offset_input(self, t):
     if t not in self.offset_inputs:
-      with tf.name_scope(self.scope):
-        with tf.name_scope(util.format_offset('input', t)):
+      with tf.compat.v1.name_scope(self.scope):
+        with tf.compat.v1.name_scope(util.format_offset('input', t)):
           offset_input = OffsetInput(self, t)
           self.offset_inputs[t] = offset_input
     return self.offset_inputs[t]
@@ -56,7 +56,7 @@ class Inputs(object):
 
 def auto_placeholder(dtype, shape, name, feed_data, preprocess_offset=None):
   placeholder_shape = [None, None] + list(shape)[1:] if shape else shape
-  placeholder = tf.placeholder(dtype, placeholder_shape, name)
+  placeholder = tf.compat.v1.placeholder(dtype, placeholder_shape, name)
   placeholder.required_feeds = RequiredFeeds(placeholder)
   placeholder.feed_data = feed_data
 
@@ -65,7 +65,7 @@ def auto_placeholder(dtype, shape, name, feed_data, preprocess_offset=None):
   def offset_data(t, name):
     input_len = shape[0]
     if not hasattr(placeholder, 'zero_offset'):
-      placeholder.zero_offset = tf.placeholder_with_default(
+      placeholder.zero_offset = tf.compat.v1.placeholder_with_default(
           input_len - 1,  # If no zero_offset is given assume that t = 0
           (),
           name + '/zero_offset')

@@ -22,10 +22,10 @@ class Trainer(object):
     self.training = True
 
     util.log('Creating session and loading checkpoint')
-    session = tf.train.MonitoredTrainingSession(
+    session = tf.compat.v1.train.MonitoredTrainingSession(
         checkpoint_dir=self.config.run_dir,
         save_summaries_steps=0,  # Summaries will be saved with train_op only
-        config=tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=True)))
+        config=tf.compat.v1.ConfigProto(gpu_options=tf.compat.v1.GPUOptions(allow_growth=True)))
 
     with session:
       if len(self.agents) == 1:

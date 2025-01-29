@@ -16,21 +16,21 @@ class NetworkFactory(object):
     self.target_nets = {}
     self.summary = util.Summary(config)
 
-    with tf.variable_scope('policy_variables') as self.policy_scope:
+    with tf.compat.v1.variable_scope('policy_variables') as self.policy_scope:
       pass
 
-    with tf.variable_scope('target_variables') as self.target_scope:
+    with tf.compat.v1.variable_scope('target_variables') as self.target_scope:
       pass
 
-    with tf.name_scope('networks') as self.network_scope:
+    with tf.compat.v1.name_scope('networks') as self.network_scope:
       pass
 
   def policy_network(self, t=0):
     if t not in self.policy_nets:
       reuse = len(self.policy_nets) > 0
-      with tf.variable_scope(self.policy_scope, reuse=reuse) as scope:
-        with tf.name_scope(self.network_scope):
-          with tf.name_scope(util.format_offset('policy', t)):
+      with tf.compat.v1.variable_scope(self.policy_scope, reuse=reuse) as scope:
+        with tf.compat.v1.name_scope(self.network_scope):
+          with tf.compat.v1.name_scope(util.format_offset('policy', t)):
             self.policy_nets[t] = dqn.Network(
                 variable_scope=scope,
                 inputs=self.inputs.offset_input(t),
@@ -43,9 +43,9 @@ class NetworkFactory(object):
   def target_network(self, t=0):
     if t not in self.target_nets:
       reuse = len(self.target_nets) > 0
-      with tf.variable_scope(self.target_scope, reuse=reuse) as scope:
-        with tf.name_scope(self.network_scope):
-          with tf.name_scope(util.format_offset('target', t)):
+      with tf.compat.v1.variable_scope(self.target_scope, reuse=reuse) as scope:
+        with tf.compat.v1.name_scope(self.network_scope):
+          with tf.compat.v1.name_scope(util.format_offset('target', t)):
             self.target_nets[t] = dqn.Network(
                 variable_scope=scope,
                 inputs=self.inputs.offset_input(t),
@@ -69,7 +69,7 @@ class NetworkFactory(object):
     # optimizer = tf.train.RMSPropOptimizer(
     #     learning_rate=0.0025, momentum=0.95, epsilon=0.0001)
     # optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
-    optimizer = tf.train.AdamOptimizer(epsilon=0.01)
+    optimizer = tf.compat.v1.train.AdamOptimizer(epsilon=0.01)
 
     # Create loss
     losses = loss.Losses(self, self.config)
@@ -85,7 +85,7 @@ class NetworkFactory(object):
 
     # Clip gradients
     if self.config.grad_clipping:
-      with tf.name_scope('clip_gradients'):
+      with tf.compat.v1.name_scope('clip_gradients'):
         grads = [(tf.clip_by_value(grad, -self.config.grad_clipping,
                                    self.config.grad_clipping), var)
                  for grad, var in grads if grad is not None]
@@ -117,16 +117,16 @@ class NetworkFactory(object):
 
   def create_reset_target_network_op(self):
     if self.policy_nets and self.target_nets:
-      policy_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+      policy_variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES,
                                            self.policy_scope.name)
-      target_variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+      target_variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES,
                                            self.target_scope.name)
 
-      with tf.name_scope('reset_target_network'):
+      with tf.compat.v1.name_scope('reset_target_network'):
         copy_ops = []
         for from_var, to_var in zip(policy_variables, target_variables):
           name = 'reset_' + to_var.name.split('/', 1)[1][:-2].replace('/', '_')
-          copy_ops.append(tf.assign(to_var, from_var, name=name))
+          copy_ops.append(tf.compat.v1.assign(to_var, from_var, name=name))
         return tf.group(*copy_ops)
     else:
       return None

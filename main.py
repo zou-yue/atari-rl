@@ -6,17 +6,20 @@ from sys import stdin
 import tensorflow as tf
 import util
 
-flags = tf.app.flags
+flags = tf.compat.v1.flags
 
 # Environment
 flags.DEFINE_string('game', 'SpaceInvaders',
                     'The Arcade Learning Environment game to play')
-flags.DEFINE_string('frameskip', 4, 'Number of frames to repeat actions for. '
+flags.DEFINE_integer('frameskip', 4, 'Number of frames to repeat actions for. '
                     'Can be int or tuple with min and max+1')
+flags.DEFINE_integer('num_actions', 1, '')
 flags.DEFINE_float(
     'repeat_action_probability', 0.25,
     'Probability of ignoring the agent action and repeat last action')
-flags.DEFINE_string('input_shape', (84, 84), 'Rescale input to this shape')
+flags.DEFINE_integer('input_shape', 84, 'Rescale input to this shape')
+flags.DEFINE_integer('input_shape_1', 84, 'Rescale input to this shape')
+flags.DEFINE_integer('input_shape_2', 84, 'Rescale input to this shape')
 flags.DEFINE_integer('input_frames', 4, 'Number of frames to input')
 flags.DEFINE_integer(
     'max_noops', 30,
@@ -64,7 +67,11 @@ flags.DEFINE_bool('exploration_bonus', False,
                   'Enable pseudo-count based exploration bonus')
 flags.DEFINE_float('exploration_beta', 0.05,
                    'Value to scale the exploration bonus by')
-flags.DEFINE_string('exploration_frame_shape', (42, 42),
+flags.DEFINE_integer('exploration_frame_shape', 42,
+                    'Shape of frame to use with CTS in exploration bonus')
+flags.DEFINE_integer('exploration_frame_shape_1', 42,
+                    'Shape of frame to use with CTS in exploration bonus')
+flags.DEFINE_integer('exploration_frame_shape_2', 42,
                     'Shape of frame to use with CTS in exploration bonus')
 
 # Training
@@ -73,7 +80,10 @@ flags.DEFINE_integer('num_steps', 50000000, 'Number of steps to train on')
 flags.DEFINE_integer(
     'target_network_update_period', 10000,
     'The number of parameter updates before the target network is updated')
-flags.DEFINE_string('async', None, 'Async algorithm [one_step|n_step|a3c]')
+flags.DEFINE_string('ASYNC', None, 'Async algorithm [one_step|n_step|a3c]')
+flags.DEFINE_boolean('n_step', False, 'Async algorithm [one_step|n_step|a3c]')
+flags.DEFINE_boolean('actor_critic', False, 'Async algorithm [one_step|n_step|a3c]')
+
 flags.DEFINE_float('entropy_beta', 0.01, 'Entropy regularization weight')
 flags.DEFINE_integer(
     'num_threads', 16,
@@ -140,32 +150,32 @@ def create_config():
       [g.lower() for g in re.findall('[A-Z]?[a-z]+', config.game)])
   config.num_actions = Atari.num_actions(config)
   config.frameskip = eval(str(config.frameskip))
-  config.input_shape = eval(str(config.input_shape))
-  config.exploration_frame_shape = eval(str(config.exploration_frame_shape))
+  config.input_shape = (eval(str(config.input_shape_1)), eval(str(config.input_shape_2)))
+  config.exploration_frame_shape = (eval(str(config.exploration_frame_shape_1)), eval(str(config.exploration_frame_shape_2)))
   config.reward_clipping = config.reward_clipping and not config.reward_scaling
   config.run_dir = util.run_directory(config)
 
   if not config.bootstrapped: config.num_bootstrap_heads = 1
 
-  if config.async is None:
+  if config.ASYNC is None:
     config.num_threads = 1
   else:
     config.replay_capacity = 1000
     config.replay_start_size = 0
 
-    if config.async == 'one_step':
+    if config.ASYNC == 'one_step':
       config.batch_size = config.train_period
-    elif config.async == 'n_step':
+    elif config.ASYNC == 'n_step':
       config.batch_size = 1
-    elif config.async == 'a3c':
+    elif config.ASYNC == 'a3c':
       config.batch_size = 1
     else:
-      raise Exception('Unknown asynchronous algorithm: ' + config.async)
-  config.n_step = config.async == 'n_step'
-  config.actor_critic = config.async == 'a3c'
+      raise Exception('Unknown asynchronous algorithm: ' + config.ASYNC)
+  config.n_step = config.ASYNC == 'n_step'
+  config.actor_critic = config.ASYNC == 'a3c'
 
   return config
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  tf.compat.v1.app.run()

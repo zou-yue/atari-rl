@@ -12,11 +12,11 @@ class RewardScaling(object):
     self.beta = config.reward_scaling_beta
     self.variance = config.reward_scaling_stddev**2
 
-    with tf.variable_scope('reward_scaling'):
-      self.scale_weight = tf.get_variable('scale_weight', 1)
-      self.scale_bias = tf.get_variable('scale_bias', 1)
+    with tf.compat.v1.variable_scope('reward_scaling'):
+      self.scale_weight = tf.compat.v1.get_variable('scale_weight', 1)
+      self.scale_bias = tf.compat.v1.get_variable('scale_bias', 1)
 
-      self.sigma_squared_input = tf.placeholder(tf.float32, (),
+      self.sigma_squared_input = tf.compat.v1.placeholder(tf.float32, (),
                                                 'sigma_squared_input')
       self.sigma_squared_input.feed_data = self.batch_sigma_squared
 
