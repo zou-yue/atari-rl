@@ -3,7 +3,7 @@ import numpy as np
 import time
 import util
 
-from gym.envs.atari.atari_env import AtariEnv
+from ale_py.env import AtariEnv
 
 
 class Atari(object):
@@ -95,7 +95,7 @@ class Atari(object):
   def create_env(cls, config):
     return FastAtariEnv(
         game=config.game,
-        obs_type='image',
+        obs_type='grayscale',
         frameskip=config.frameskip,
         repeat_action_probability=config.repeat_action_probability)
 

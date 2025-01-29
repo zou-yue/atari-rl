@@ -14,7 +14,7 @@ class ReplayMemory(object):
     self.capacity = config.replay_capacity
     self.discount_rate = config.discount_rate
     self.frame_offsets = np.arange(1 - config.input_frames, 1)
-    self.recent_only = config.async is not None
+    self.recent_only = config.ASYNC is not None
     self.run_dir = config.run_dir
 
     # Track position and count in memory
